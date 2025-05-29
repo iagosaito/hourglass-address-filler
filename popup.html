@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Auto Fill Address</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --accent: rgb(158, 139, 94);
+        --accent-dark: rgb(130, 114, 76);
+        --background: #fdfaf3;
+        --text-color: #333;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        padding: 16px;
+        width: 280px;
+        background-color: var(--background);
+        color: var(--text-color);
+      }
+
+      textarea {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        resize: none;
+        box-sizing: border-box;
+        margin-bottom: 12px;
+        background-color: #fffef9;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: var(--accent);
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+
+      button:hover {
+        background-color: var(--accent-dark);
+      }
+    </style>
+  </head>
+  <body>
+    <textarea
+      id="addressInput"
+      rows="4"
+      placeholder="Paste address here..."
+    ></textarea>
+    <button id="fillButton">Fill Form</button>
+    <script src="popup.js"></script>
+  </body>
+</html>
