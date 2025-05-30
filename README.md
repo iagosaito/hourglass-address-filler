@@ -2,7 +2,7 @@
 
 > ⚠️ **Attention:** Currently, it only works with Hourglass in Portuguese - Brazil.
 
-Hourglass Address Filler is a Google Chrome extension that automatically fills in address fields on Hourglass new address form.
+Hourglass Address Filler is a Google Chrome extension that automatically fills Hourglass address forms.
 
 ## Overview
 
