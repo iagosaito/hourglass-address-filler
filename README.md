@@ -10,7 +10,7 @@ It uses the Google Maps address pattern and Nominatin Open Street Map API to fil
 
 ## Installation
 
-1. Clone the repository:
+1. Download the ZIP file from the [release github page](https://github.com/iagosaito/hourglass-address-filler/releases). Alternatively, you can clone the repository using Git:
 
    ```bash
    git clone git@github.com:<YOUR_USERNAME>/hourglass-address-filler.git
