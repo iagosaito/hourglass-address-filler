@@ -4,6 +4,8 @@
 
 Hourglass Address Filler is a Google Chrome extension that automatically fills Hourglass address forms.
 
+![Demo of Hourglass Address Filler](assets/hourglass_demo.gif)
+
 ## Overview
 
 It uses the Google Maps address pattern and Nominatin Open Street Map API to fill automatically the address, city, state, zip code, latitude and longitude fields.
@@ -31,8 +33,6 @@ It uses the Google Maps address pattern and Nominatin Open Street Map API to fil
 4. The extension should now be installed and active.
 
 ## How to Use
-
-![Demo of Hourglass Address Filler](assets/hourglass_demo.gif)
 
 1. Navigate to the Hourglass new address form.
 2. Open the extension popup by clicking on the extension icon in the Chrome toolbar and paste the address in Google Maps format, like:
