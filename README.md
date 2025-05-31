@@ -32,7 +32,7 @@ It uses the Google Maps address pattern and Nominatin Open Street Map API to fil
 
 ## How to Use
 
-![Demo of Hourglass Address Filler](assets/demo.gif)
+![Demo of Hourglass Address Filler](assets/hourglass_demo.gif)
 
 1. Navigate to the Hourglass new address form.
 2. Open the extension popup by clicking on the extension icon in the Chrome toolbar and paste the address in Google Maps format, like:
