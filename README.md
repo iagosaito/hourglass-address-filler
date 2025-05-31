@@ -32,11 +32,15 @@ It uses the Google Maps address pattern and Nominatin Open Street Map API to fil
 
 ## How to Use
 
+![Demo of Hourglass Address Filler](assets/demo.gif)
+
 1. Navigate to the Hourglass new address form.
-2. Open the extension popup by clicking on the extension icon in the Chrome toolbar and paste the address format as Google Maps like:
+2. Open the extension popup by clicking on the extension icon in the Chrome toolbar and paste the address in Google Maps format, like:
+
    ```
    R. Dr. Vila Nova, 245 - Vila Buarque, São Paulo - SP, 01222-020
    ```
+
 3. Click the "Fill Address" button.
 4. The address fields should be automatically filled in the form, including latitude and longitude.
 
