@@ -44,6 +44,26 @@ It uses the Google Maps address pattern and Nominatin Open Street Map API to fil
 3. Click the "Fill Address" button.
 4. The address fields should be automatically filled in the form, including latitude and longitude.
 
+## Project Structure
+
+The extension code is now split into focused modules:
+
+- `src/popup/index.js`: popup event orchestration.
+- `src/shared/address.js`: address parser helpers.
+- `src/shared/geofence.js`: point-in-polygon and multipolygon helpers.
+- `tests/*.test.js`: unit tests for shared logic.
+ - `src/shared/address.js`: address parser helpers.
+ - `src/shared/geofence.js`: point-in-polygon and multipolygon helpers.
+ - `tests/*.test.js`: unit tests for shared logic.
+
+## Running Tests
+
+This project uses the Node.js built-in test runner.
+
+```bash
+npm test
+```
+
 ## Contributing
 
 Contributions are welcome! If you have suggestions or improvements, feel free to open an issue or submit a pull request.
