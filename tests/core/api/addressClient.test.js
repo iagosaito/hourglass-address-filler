@@ -131,30 +131,12 @@ test("normalizeStateToUF: unknown value is returned uppercased as fallback", asy
   assert.equal(await resolveWithState("Somewhere"), "SOMEWHERE");
 });
 
-// --- capitalizeWords / street normalization ---
-
-async function resolveWithStreet(street) {
+test("resolveAddressWithBackend applies capitalizeWords to street", async () => {
   global.fetch = async () => ({
     ok: true,
-    json: async () => ([{ street, number: "", neighborhood: "", city: "", state: "SP", cep: "", lat: 0, lon: 0 }]),
+    json: async () => ([{ street: "av. paulista", number: "", neighborhood: "", city: "", state: "SP", cep: "", lat: 0, lon: 0 }]),
   });
   const [result] = await resolveAddressWithBackend("any");
   delete global.fetch;
-  return result.street;
-}
-
-test("capitalizeWords: lowercases input and capitalizes each word", async () => {
-  assert.equal(await resolveWithStreet("av. paulista"), "Av. Paulista");
-});
-
-test("capitalizeWords: uppercased input is title-cased", async () => {
-  assert.equal(await resolveWithStreet("RUA DOIS DE MARÇO"), "Rua Dois De Março");
-});
-
-test("capitalizeWords: already title-cased input is unchanged", async () => {
-  assert.equal(await resolveWithStreet("Avenida Paulista"), "Avenida Paulista");
-});
-
-test("capitalizeWords: single word is capitalized", async () => {
-  assert.equal(await resolveWithStreet("alameda"), "Alameda");
+  assert.equal(result.street, "Av. Paulista");
 });

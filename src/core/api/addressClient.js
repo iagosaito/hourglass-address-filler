@@ -1,4 +1,5 @@
 import { getBackendConfig } from "../config/backendConfig.js";
+import { capitalizeWords } from "../utils/stringUtils.js";
 
 const RESOLVE_PATH = "/v1/address/resolve";
 
@@ -84,13 +85,6 @@ function normalizeStateToUF(state) {
     .replace(/\s+/g, "");
 
   return STATE_TO_UF[key] || upper;
-}
-
-function capitalizeWords(str) {
-  return String(str || "")
-    .trim()
-    .toLowerCase()
-    .replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
 }
 
 function normalizeResolvedAddress(payload) {
