@@ -86,3 +86,47 @@ test("resolveAddressWithBackend returns null for empty input", async () => {
   const result = await resolveAddressWithBackend("   ");
   assert.equal(result, null);
 });
+
+// --- normalizeStateToUF (tested through resolveAddressWithBackend) ---
+
+async function resolveWithState(state) {
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ([{ street: "", number: "", neighborhood: "", city: "", state, cep: "", lat: 0, lon: 0 }]),
+  });
+  const [result] = await resolveAddressWithBackend("any");
+  delete global.fetch;
+  return result.state;
+}
+
+test("normalizeStateToUF: lowercase UF code is uppercased", async () => {
+  assert.equal(await resolveWithState("sp"), "SP");
+});
+
+test("normalizeStateToUF: full name with accent (São Paulo) → SP", async () => {
+  assert.equal(await resolveWithState("São Paulo"), "SP");
+});
+
+test("normalizeStateToUF: full name without accent (Sao Paulo) → SP", async () => {
+  assert.equal(await resolveWithState("Sao Paulo"), "SP");
+});
+
+test("normalizeStateToUF: full name without space (SaoPaulo) → SP", async () => {
+  assert.equal(await resolveWithState("SaoPaulo"), "SP");
+});
+
+test("normalizeStateToUF: Minas Gerais → MG", async () => {
+  assert.equal(await resolveWithState("Minas Gerais"), "MG");
+});
+
+test("normalizeStateToUF: Rio de Janeiro → RJ", async () => {
+  assert.equal(await resolveWithState("Rio de Janeiro"), "RJ");
+});
+
+test("normalizeStateToUF: Rio Grande do Sul → RS", async () => {
+  assert.equal(await resolveWithState("Rio Grande do Sul"), "RS");
+});
+
+test("normalizeStateToUF: unknown value is returned uppercased as fallback", async () => {
+  assert.equal(await resolveWithState("Somewhere"), "SOMEWHERE");
+});
