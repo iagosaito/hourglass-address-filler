@@ -177,6 +177,12 @@
         background: #fffef9;
         margin-bottom: 8px;
         font-size: 12px;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .candidate-row.selected {
+        border-color: var(--accent);
+        background: var(--accent-soft);
       }
 
       .candidate-label {
