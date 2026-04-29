@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { isPointInMultiPolygon } from "../src/shared/geofence.js";
+import { isPointInMultiPolygon } from "../../../src/core/domain/geofence.js";
 
 const multiPolygon = {
   type: "MultiPolygon",

@@ -11,16 +11,93 @@
       :root {
         --accent: rgb(158, 139, 94);
         --accent-dark: rgb(130, 114, 76);
+        --accent-soft: rgba(158, 139, 94, 0.12);
+        --success: #1f7a4d;
+        --success-soft: rgba(31, 122, 77, 0.12);
+        --danger: #721c24;
+        --danger-soft: #f8d7da;
         --background: #fdfaf3;
         --text-color: #333;
+        --card: rgba(255, 255, 255, 0.9);
       }
 
       body {
         font-family: "Inter", sans-serif;
         padding: 16px;
-        width: 280px;
-        background-color: var(--background);
+        width: 340px;
+        background:
+          radial-gradient(circle at top left, rgba(158, 139, 94, 0.16), transparent 38%),
+          radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.72), transparent 42%),
+          var(--background);
         color: var(--text-color);
+      }
+
+      .shell {
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid rgba(158, 139, 94, 0.16);
+        border-radius: 16px;
+        box-shadow: 0 14px 32px rgba(63, 47, 14, 0.08);
+        backdrop-filter: blur(6px);
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 14px 0;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: rgba(51, 51, 51, 0.7);
+        line-height: 1.4;
+      }
+
+      .content {
+        padding: 14px;
+      }
+
+      .message-box {
+        display: none;
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.4;
+        margin-bottom: 12px;
+      }
+
+      .message-box.show {
+        display: block;
+      }
+
+      .message-box[data-kind="error"] {
+        background: var(--danger-soft);
+        color: var(--danger);
+        border: 1px solid rgba(114, 28, 36, 0.18);
+      }
+
+      .message-box[data-kind="success"] {
+        background: var(--success-soft);
+        color: var(--success);
+        border: 1px solid rgba(31, 122, 77, 0.18);
+      }
+
+      .message-box[data-kind="info"] {
+        background: var(--accent-soft);
+        color: var(--accent-dark);
+        border: 1px solid rgba(158, 139, 94, 0.18);
       }
 
       textarea {
@@ -51,15 +128,182 @@
       button:hover {
         background-color: var(--accent-dark);
       }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .secondary-button {
+        background: transparent;
+        color: var(--accent-dark);
+        border: 1px solid rgba(158, 139, 94, 0.24);
+      }
+
+      .secondary-button:hover {
+        background: rgba(158, 139, 94, 0.08);
+      }
+
+      .preview-panel {
+        display: none;
+        border-top: 1px solid rgba(158, 139, 94, 0.12);
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      .preview-panel.show {
+        display: block;
+      }
+
+      .preview-summary {
+        display: grid;
+        gap: 8px;
+      }
+
+      .candidate-picker {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .candidate-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(158, 139, 94, 0.08);
+        background: #fffef9;
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+
+      .candidate-label {
+        flex: 1;
+        color: rgba(51, 51, 51, 0.9);
+      }
+
+      .candidate-actions {
+        display: flex;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+
+      .accept-button {
+        padding: 6px 10px;
+        background: var(--success);
+        color: white;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .accept-button:hover {
+        background: #16663f;
+      }
+
+      .candidate-picker label {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(51, 51, 51, 0.72);
+      }
+
+      .candidate-picker select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(158, 139, 94, 0.22);
+        background: #fffef9;
+        color: var(--text-color);
+        font-size: 12px;
+      }
+
+      .preview-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .preview-label {
+        color: rgba(51, 51, 51, 0.68);
+        flex: 0 0 42%;
+      }
+
+      .preview-value {
+        text-align: right;
+        flex: 1;
+        word-break: break-word;
+      }
+
+      .preview-json {
+        margin: 12px 0 0;
+        padding: 12px;
+        border-radius: 12px;
+        background: rgba(248, 245, 237, 0.92);
+        border: 1px solid rgba(158, 139, 94, 0.16);
+        font-size: 11px;
+        line-height: 1.5;
+        overflow: auto;
+        max-height: 200px;
+        white-space: pre-wrap;
+      }
+
+.settings-link {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      .settings-link a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .settings-link a:hover {
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
-    <textarea
-      id="addressInput"
-      rows="4"
-      placeholder="Paste address here..."
-    ></textarea>
-    <button id="fillButton">Fill Form</button>
+    <div class="shell">
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="title">Hourglass Address</p>
+            <p class="subtitle">Generate the address payload, review it, then approve the request.</p>
+          </div>
+        </div>
+        <div class="content">
+          <div id="messageBox" class="message-box"></div>
+          <textarea
+            id="addressInput"
+            rows="4"
+            placeholder="Paste address here..."
+          ></textarea>
+          <button id="fillButton">Pré-visualizar</button>
+          <div class="settings-link">
+            <a href="#" id="openSettings">⚙️ Configurar backend</a>
+          </div>
+        </div>
+      </div>
+
+      <div id="previewPanel" class="panel preview-panel">
+        <div class="content">
+          <p class="title">Preview before submit</p>
+          <p class="subtitle">This is the exact payload that will be sent to Hourglass.</p>
+          <div id="candidatePicker" class="candidate-picker" hidden>
+            <label>Normalized address candidates</label>
+            <div id="candidateList" role="list" aria-label="Normalized address candidates"></div>
+          </div>
+          <div id="previewSummary" class="preview-summary"></div>
+          <pre id="previewJson" class="preview-json"></pre>
+        </div>
+      </div>
+    </div>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

@@ -3,9 +3,14 @@
   "name": "Hourglass address filler",
   "version": "1.0",
   "description": "A Chrome extension to fill in address fields on Hourglass",
-  "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["https://nominatim.openstreetmap.org/*"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://app.hourglass-app.com/*",
+    "http://localhost:8080/*",
+    "http://127.0.0.1:8080/*"
+  ],
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+  "options_page": "options.html"
 }

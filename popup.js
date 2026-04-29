@@ -1,1 +1,3 @@
-import "./src/popup/index.js";
+import { setupPopup } from "./src/popup/index.js";
+
+setupPopup();
