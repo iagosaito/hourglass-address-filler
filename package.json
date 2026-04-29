@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "stryker": "stryker run"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
     "jsdom": "^22.1.0"
   }
 }
