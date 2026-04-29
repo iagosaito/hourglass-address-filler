@@ -86,13 +86,20 @@ function normalizeStateToUF(state) {
   return STATE_TO_UF[key] || upper;
 }
 
+function capitalizeWords(str) {
+  return String(str || "")
+    .trim()
+    .toLowerCase()
+    .replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
+}
+
 function normalizeResolvedAddress(payload) {
   if (!payload || typeof payload !== "object") {
     return null;
   }
 
   return {
-    street: String(payload.street || "").trim(),
+    street: capitalizeWords(payload.street),
     number: String(payload.number || "").trim(),
     neighborhood: String(payload.neighborhood || "").trim(),
     city: String(payload.city || "").trim(),
