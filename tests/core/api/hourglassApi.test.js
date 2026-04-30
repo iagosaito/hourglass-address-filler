@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   createAddress,
+  deleteAddress,
   getTerritories,
   getXsrfFromCookieString,
 } from "../../../src/core/api/hourglassApi.js";
@@ -79,6 +80,42 @@ test("createAddress reads xsrf from document.cookie when not provided", async ()
 test("createAddress throws on non-ok response", async () => {
   global.fetch = async () => ({ ok: false, status: 400, text: async () => "Bad request" });
   await assert.rejects(async () => createAddress({ territoryId: 1 }), /400/);
+});
+
+test("deleteAddress sends DELETE to correct endpoint with xsrf header", async () => {
+  let called = false;
+  global.fetch = async (url, opts) => {
+    called = true;
+    assert.strictEqual(url, "https://app.hourglass-app.com/api/v0.2/scheduling/territory/addresses/7649889");
+    assert.strictEqual(opts.method, "DELETE");
+    assert.strictEqual(opts.headers["X-Hourglass-XSRF-Token"], "token123");
+    assert.strictEqual(opts.headers.Accept, "application/json");
+    assert.strictEqual(opts.credentials, "include");
+    return { ok: true, status: 204, json: async () => null, text: async () => "" };
+  };
+  const res = await deleteAddress(7649889, { xsrfToken: "token123" });
+  assert.strictEqual(res, null);
+  assert.ok(called);
+});
+
+test("deleteAddress returns parsed JSON when response has a body", async () => {
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ deleted: true }),
+    text: async () => "",
+  });
+  const res = await deleteAddress(123, { xsrfToken: "tok" });
+  assert.deepStrictEqual(res, { deleted: true });
+});
+
+test("deleteAddress throws on non-ok response", async () => {
+  global.fetch = async () => ({ ok: false, status: 404, text: async () => "Not Found" });
+  await assert.rejects(async () => deleteAddress(999, { xsrfToken: "tok" }), /404/);
+});
+
+test("deleteAddress throws when addressId is falsy", async () => {
+  await assert.rejects(async () => deleteAddress(null), /addressId must be a non-empty value/);
 });
 
 test("getXsrfFromCookieString finds token", () => {

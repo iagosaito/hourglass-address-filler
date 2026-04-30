@@ -53,6 +53,27 @@ export async function createAddress(newAddressReq, opts = {}) {
   return res.json();
 }
 
+export async function deleteAddress(addressId, opts = {}) {
+  if (!addressId) {
+    throw new TypeError(`addressId must be a non-empty value, got: ${addressId}`);
+  }
+
+  const { baseUrl = DEFAULT_ADDRESSES_URL, xsrfToken, includeCredentials = true } = opts;
+  const token = xsrfToken ?? getXsrfFromDocumentCookie();
+  const res = await fetch(`${baseUrl}/${addressId}`, {
+    method: "DELETE",
+    headers: buildHeaders(token),
+    credentials: includeCredentials ? "include" : "omit",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`deleteAddress failed: ${res.status} ${text}`);
+  }
+
+  return res.status === 204 ? null : res.json();
+}
+
 export function getXsrfFromCookieString(cookieString = "") {
   if (!cookieString) {
     return null;
