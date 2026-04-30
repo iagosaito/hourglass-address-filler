@@ -245,6 +245,24 @@
         word-break: break-word;
       }
 
+      .preview-value.editable {
+        cursor: text;
+        border-bottom: 1px dashed rgba(158, 139, 94, 0.45);
+        padding: 0 2px;
+        border-radius: 2px;
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+
+      .preview-value.editable:hover {
+        background: rgba(158, 139, 94, 0.08);
+      }
+
+      .preview-value.editable:focus {
+        outline: none;
+        background: rgba(158, 139, 94, 0.12);
+        border-bottom-color: rgba(158, 139, 94, 0.9);
+      }
+
       .preview-json {
         margin: 12px 0 0;
         padding: 12px;

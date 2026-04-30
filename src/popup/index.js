@@ -36,7 +36,7 @@ async function getCookieStringFromTab(tabId) {
   return typeof result?.result === "string" ? result.result : "";
 }
 
-function createPreviewRow(label, value) {
+function createPreviewRow(label, value, onCommit) {
   const row = document.createElement("div");
   row.className = "preview-row";
 
@@ -48,8 +48,38 @@ function createPreviewRow(label, value) {
   valueElement.className = "preview-value";
   valueElement.textContent = value;
 
+  if (typeof onCommit === "function") {
+    bindEditableValue(valueElement, value, onCommit);
+  }
+
   row.append(labelElement, valueElement);
   return row;
+}
+
+function bindEditableValue(valueElement, originalValue, onCommit) {
+  valueElement.classList.add("editable");
+  valueElement.contentEditable = "true";
+  valueElement.spellcheck = false;
+  valueElement.title = "Clique para editar";
+
+  valueElement.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      valueElement.blur();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      valueElement.textContent = originalValue;
+      valueElement.blur();
+    }
+  });
+
+  valueElement.addEventListener("blur", () => {
+    const nextValue = valueElement.textContent.trim();
+    valueElement.textContent = nextValue;
+    if (nextValue !== originalValue) {
+      onCommit(nextValue);
+    }
+  });
 }
 
 export function setupPopup() {
@@ -106,15 +136,21 @@ export function setupPopup() {
   }
 
   function showPreview(payload, territory, selectedIndex, candidates) {
+    function commitField(key, value) {
+      payload[key] = value;
+      previewJson.textContent = JSON.stringify(payload, null, 2);
+      renderCandidateOptions(candidates, selectedIndex);
+    }
+
     const rows = [
       ["Candidatos", `${selectedIndex + 1} de ${candidates.length}`],
       ["Território", `${territory.number || territory.id}`],
       ["Territory ID", String(payload.territoryId)],
-      ["Line 1", payload.line1],
-      ["Line 2", payload.line2 || ""],
-      ["Cidade", payload.city],
-      ["Estado", payload.state],
-      ["CEP", payload.postalcode],
+      ["Line 1", payload.line1, (v) => commitField("line1", v)],
+      ["Line 2", payload.line2 || "", (v) => commitField("line2", v)],
+      ["Cidade", payload.city, (v) => commitField("city", v)],
+      ["Estado", payload.state, (v) => commitField("state", v.toUpperCase())],
+      ["CEP", payload.postalcode, (v) => commitField("postalcode", v)],
       ["Localização", `${payload.location.y}, ${payload.location.x}`],
       ["Sort order", String(payload.sortOrder)],
       ["DNC", String(payload.dnc)],
@@ -122,24 +158,27 @@ export function setupPopup() {
     ];
 
     previewSummary.replaceChildren(
-      ...rows.map(([label, value]) => createPreviewRow(label, value))
+      ...rows.map(([label, value, onCommit]) => createPreviewRow(label, value, onCommit))
     );
     previewJson.textContent = JSON.stringify(payload, null, 2);
     previewPanel.classList.add("show");
   }
 
   function formatCandidateLabel(candidate, index) {
-    const parts = [
-      `#${index + 1}`,
-      candidate.street,
-      candidate.number,
-      candidate.apt,
-      candidate.city,
-      candidate.state,
-      candidate.cep,
-    ].filter(Boolean);
+    const payload = candidate._payload;
+    const parts = payload
+      ? [`#${index + 1}`, payload.line1, payload.city, payload.state, payload.postalcode]
+      : [
+          `#${index + 1}`,
+          candidate.street,
+          candidate.number,
+          candidate.apt,
+          candidate.city,
+          candidate.state,
+          candidate.cep,
+        ];
 
-    return parts.join(" - ");
+    return parts.filter(Boolean).join(" - ");
   }
 
   function renderCandidateOptions(candidates, selectedIndex) {
@@ -211,17 +250,25 @@ export function setupPopup() {
       throw new Error("Não foi possível selecionar o endereço normalizado.");
     }
 
-    const territory = await deps.fetchTerritoryForLatLon(
-      candidate.lat,
-      candidate.lon,
-      { xsrfToken: pendingSubmission.xsrfToken }
-    );
+    let payload = candidate._payload;
+    let territory = candidate._territory;
 
-    if (!territory) {
-      throw new Error("Não foi possível identificar o território desse endereço.");
+    if (!payload || !territory) {
+      territory = await deps.fetchTerritoryForLatLon(
+        candidate.lat,
+        candidate.lon,
+        { xsrfToken: pendingSubmission.xsrfToken }
+      );
+
+      if (!territory) {
+        throw new Error("Não foi possível identificar o território desse endereço.");
+      }
+
+      payload = deps.buildHourglassAddressPayload(candidate, candidate, territory);
+      candidate._payload = payload;
+      candidate._territory = territory;
     }
 
-    const payload = deps.buildHourglassAddressPayload(candidate, candidate, territory);
     pendingSubmission.selectedIndex = selectedIndex;
     pendingSubmission.payload = payload;
     pendingSubmission.territory = territory;
@@ -260,12 +307,17 @@ export function setupPopup() {
       return;
     }
 
-    try {
-      await renderSelectedCandidate(index);
-    } catch (err) {
-      console.error("[Popup Error]", err);
-      setMessage(err.message || "Não foi possível preparar a submissão para esse candidato.");
-      return;
+    const needsRebuild =
+      index !== pendingSubmission.selectedIndex || !pendingSubmission.payload;
+
+    if (needsRebuild) {
+      try {
+        await renderSelectedCandidate(index);
+      } catch (err) {
+        console.error("[Popup Error]", err);
+        setMessage(err.message || "Não foi possível preparar a submissão para esse candidato.");
+        return;
+      }
     }
 
     fillButton.disabled = true;
