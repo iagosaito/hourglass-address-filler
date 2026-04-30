@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Auto Fill Address</title>
+    <title>Hourglass Sync</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
       rel="stylesheet"
@@ -48,25 +48,72 @@
       .panel-header {
         display: flex;
         justify-content: space-between;
+        align-items: flex-start;
         gap: 12px;
-        padding: 14px 14px 0;
+        padding: 16px 16px 0;
       }
 
       .title {
         margin: 0;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 600;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .title::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 16px;
+        border-radius: 2px;
+        background: var(--accent);
       }
 
       .subtitle {
-        margin: 4px 0 0;
+        margin: 6px 0 0;
         font-size: 12px;
         color: rgba(51, 51, 51, 0.7);
-        line-height: 1.4;
+        line-height: 1.45;
+      }
+
+      .header-action {
+        background: transparent;
+        border: 1px solid rgba(158, 139, 94, 0.22);
+        color: var(--accent-dark);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        width: auto;
+        flex: 0 0 auto;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+      }
+
+      .header-action:hover {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+
+      .header-action:active {
+        transform: translateY(1px);
       }
 
       .content {
-        padding: 14px;
+        padding: 14px 16px 16px;
+      }
+
+      .field-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: rgba(51, 51, 51, 0.55);
+        margin: 0 0 6px;
       }
 
       .message-box {
@@ -102,14 +149,29 @@
 
       textarea {
         width: 100%;
-        padding: 10px;
-        font-size: 14px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        resize: none;
+        padding: 12px 14px;
+        font-family: inherit;
+        font-size: 13px;
+        line-height: 1.5;
+        border: 1px solid rgba(158, 139, 94, 0.22);
+        border-radius: 12px;
+        resize: vertical;
+        min-height: 96px;
         box-sizing: border-box;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
         background-color: #fffef9;
+        color: var(--text-color);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+
+      textarea::placeholder {
+        color: rgba(51, 51, 51, 0.4);
       }
 
       button {
@@ -117,6 +179,7 @@
         padding: 10px;
         background-color: var(--accent);
         color: white;
+        font-family: inherit;
         font-size: 14px;
         font-weight: 600;
         border: none;
@@ -132,6 +195,31 @@
       button:disabled {
         background-color: #ccc;
         cursor: not-allowed;
+      }
+
+      .primary-button {
+        padding: 11px 14px;
+        background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+        border-radius: 10px;
+        letter-spacing: 0.01em;
+        box-shadow: 0 4px 12px rgba(130, 114, 76, 0.18);
+        transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+      }
+
+      .primary-button:hover {
+        background: linear-gradient(180deg, var(--accent-dark), var(--accent-dark));
+        box-shadow: 0 6px 16px rgba(130, 114, 76, 0.26);
+      }
+
+      .primary-button:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 8px rgba(130, 114, 76, 0.22);
+      }
+
+      .primary-button:disabled {
+        background: #cfc7b4;
+        box-shadow: none;
+        opacity: 0.9;
       }
 
       .secondary-button {
@@ -361,20 +449,6 @@
         white-space: pre-wrap;
       }
 
-.settings-link {
-        text-align: center;
-        margin-top: 10px;
-        font-size: 12px;
-      }
-
-      .settings-link a {
-        color: var(--accent);
-        text-decoration: none;
-      }
-
-      .settings-link a:hover {
-        text-decoration: underline;
-      }
     </style>
   </head>
   <body>
@@ -382,21 +456,20 @@
       <div class="panel">
         <div class="panel-header">
           <div>
-            <p class="title">Hourglass Address</p>
-            <p class="subtitle">Generate the address payload, review it, then approve the request.</p>
+            <p class="title">Hourglass Sync</p>
+            <p class="subtitle">Review and submit address changes to your territory.</p>
           </div>
+          <button id="openSettings" class="header-action" type="button" aria-label="Configurar backend" title="Configurar backend">⚙</button>
         </div>
         <div class="content">
           <div id="messageBox" class="message-box"></div>
+          <label class="field-label" for="addressInput">Endereço bruto</label>
           <textarea
             id="addressInput"
             rows="4"
-            placeholder="Paste address here..."
+            placeholder="Cole um ou mais endereços para processar..."
           ></textarea>
-          <button id="fillButton">Pré-visualizar</button>
-          <div class="settings-link">
-            <a href="#" id="openSettings">⚙️ Configurar backend</a>
-          </div>
+          <button id="fillButton" class="primary-button">Pré-visualizar</button>
         </div>
       </div>
 
