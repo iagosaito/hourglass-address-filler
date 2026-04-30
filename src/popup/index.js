@@ -133,6 +133,7 @@ export function setupPopup() {
       `#${index + 1}`,
       candidate.street,
       candidate.number,
+      candidate.apt,
       candidate.city,
       candidate.state,
       candidate.cep,
