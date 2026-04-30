@@ -191,7 +191,7 @@ export function setupPopup() {
   function getMatchAnnotation(candidate) {
     if (candidate.operation !== "delete" || !candidate._searchResult) return null;
     const { status, matches } = candidate._searchResult;
-    if (status === "none") return { text: "no match", emphasized: false };
+    if (status === "none") return null;
     if (status === "many") return { text: `${matches.length} matches — pick one`, emphasized: true };
     return { text: `id ${matches[0].id}`, emphasized: false };
   }
@@ -212,13 +212,37 @@ export function setupPopup() {
     return tag;
   }
 
-  function populateCandidateLabel(labelEl, candidate, index) {
-    labelEl.replaceChildren();
+  function buildUnknownTag() {
+    const tag = document.createElement("span");
+    tag.className = "op-tag op-tag-unknown";
+    tag.textContent = "UNKNOWN";
+    return tag;
+  }
 
-    const indexEl = document.createElement("span");
-    indexEl.className = "candidate-index";
-    indexEl.textContent = `#${index + 1}`;
-    labelEl.appendChild(indexEl);
+  function isUnknownDelete(candidate) {
+    return candidate.operation === "delete" && candidate._searchResult?.status === "none";
+  }
+
+  async function preloadDeleteSearches(candidates, xsrfToken) {
+    const tasks = candidates
+      .filter((c) => c.operation === "delete" && !c._searchResult)
+      .map(async (c) => {
+        try {
+          c._searchResult = await deps.findAddressToDelete(c, {
+            searchAddresses: deps.searchAddresses,
+            xsrfToken,
+          });
+          c._selectedMatchIndex = 0;
+        } catch (err) {
+          console.error("[Popup Error] preload search failed", err);
+          c._searchResult = { status: "none", matches: [], triedQueries: [] };
+        }
+      });
+    await Promise.all(tasks);
+  }
+
+  function populateCandidateLabel(labelEl, candidate) {
+    labelEl.replaceChildren();
 
     const addressEl = document.createElement("span");
     addressEl.className = "candidate-address";
@@ -245,6 +269,15 @@ export function setupPopup() {
         const header = document.createElement("div");
         header.className = "candidate-header";
         header.appendChild(buildOpTag(candidate));
+        if (isUnknownDelete(candidate)) {
+          header.appendChild(buildUnknownTag());
+        }
+
+        const indexEl = document.createElement("span");
+        indexEl.className = "candidate-index";
+        indexEl.textContent = `#${index + 1}`;
+        header.appendChild(indexEl);
+
         item.appendChild(header);
 
         const body = document.createElement("div");
@@ -253,7 +286,7 @@ export function setupPopup() {
         const label = document.createElement("div");
         label.className = "candidate-label";
         label.setAttribute("aria-label", formatCandidateLabel(candidate, index));
-        populateCandidateLabel(label, candidate, index);
+        populateCandidateLabel(label, candidate);
         label.style.cursor = "pointer";
         label.addEventListener("click", async () => {
           try {
@@ -267,27 +300,30 @@ export function setupPopup() {
         const actions = document.createElement("div");
         actions.className = "candidate-actions";
 
-        const denyBtn = document.createElement("button");
-        denyBtn.type = "button";
-        denyBtn.className = "secondary-button";
-        denyBtn.textContent = "Deny";
-        denyBtn.setAttribute("aria-label", `Deny candidate ${index + 1}`);
-        denyBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          handleDenyCandidate(index);
-        });
+        if (!isUnknownDelete(candidate)) {
+          const denyBtn = document.createElement("button");
+          denyBtn.type = "button";
+          denyBtn.className = "secondary-button";
+          denyBtn.textContent = "Deny";
+          denyBtn.setAttribute("aria-label", `Deny candidate ${index + 1}`);
+          denyBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            handleDenyCandidate(index);
+          });
 
-        const acceptBtn = document.createElement("button");
-        acceptBtn.type = "button";
-        acceptBtn.className = "accept-button";
-        acceptBtn.textContent = "Accept";
-        acceptBtn.setAttribute("aria-label", `Accept candidate ${index + 1}`);
-        acceptBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          handleAcceptCandidate(index);
-        });
+          const acceptBtn = document.createElement("button");
+          acceptBtn.type = "button";
+          acceptBtn.className = "accept-button";
+          acceptBtn.textContent = "Accept";
+          acceptBtn.setAttribute("aria-label", `Accept candidate ${index + 1}`);
+          acceptBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            handleAcceptCandidate(index);
+          });
 
-        actions.append(denyBtn, acceptBtn);
+          actions.append(denyBtn, acceptBtn);
+        }
+
         body.append(label, actions);
         item.appendChild(body);
 
@@ -353,21 +389,31 @@ export function setupPopup() {
     }
 
     const result = candidate._searchResult;
-
-    if (result.status === "none") {
-      setMessage(
-        `Sem correspondência para "${candidate.street} ${candidate.number}". Pulando candidato.`,
-        "info",
-      );
-      removeCandidateAt(selectedIndex);
-      return;
-    }
-
     pendingSubmission.selectedIndex = selectedIndex;
     pendingSubmission.payload = null;
     pendingSubmission.territory = null;
     renderCandidateOptions(pendingSubmission.candidates, selectedIndex);
+
+    if (result.status === "none") {
+      showUnknownDeletePreview(candidate, result, selectedIndex);
+      return;
+    }
+
     showDeletePreview(candidate, result, selectedIndex);
+  }
+
+  function showUnknownDeletePreview(candidate, result, selectedIndex) {
+    const total = pendingSubmission.candidates.length;
+    const rows = [
+      ["Candidatos", `${selectedIndex + 1} de ${total}`],
+      ["Operação", "Deletar"],
+      ["Status", "UNKNOWN — nenhum endereço encontrado"],
+      ["Buscar por", `${candidate.street}, ${candidate.number}`],
+      ["Queries tentadas", result.triedQueries.join("  |  ")],
+    ];
+    previewSummary.replaceChildren(...rows.map(([l, v]) => createPreviewRow(l, v)));
+    previewJson.textContent = JSON.stringify({ status: "none", triedQueries: result.triedQueries }, null, 2);
+    previewPanel.classList.add("show");
   }
 
   function showDeletePreview(candidate, result, selectedIndex) {
@@ -601,6 +647,8 @@ export function setupPopup() {
         tabId,
         xsrfToken,
       };
+
+      await preloadDeleteSearches(candidates, xsrfToken);
 
       // Render per-candidate list and show preview for the first candidate
       renderCandidateOptions(candidates, 0);
