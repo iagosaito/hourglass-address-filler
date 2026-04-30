@@ -67,6 +67,7 @@ test("resolveAddressWithBackend posts the raw address to the backend and returns
       cep: "01310-200",
       lat: -23.56,
       lon: -46.64,
+      operation: "create",
     },
     {
       street: "Avenida Paulista",
@@ -78,6 +79,7 @@ test("resolveAddressWithBackend posts the raw address to the backend and returns
       cep: "01310-200",
       lat: -23.57,
       lon: -46.63,
+      operation: "create",
     },
   ]);
 
@@ -117,6 +119,26 @@ test("resolveAddressWithBackend surfaces apt when present in payload", async () 
   const [result] = await resolveAddressWithBackend("any");
   delete global.fetch;
   assert.equal(result.apt, "12");
+});
+
+test("resolveAddressWithBackend surfaces operation: 'delete' when payload says so", async () => {
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ([{ street: "Rua Marconi", number: "131", neighborhood: "", city: "", state: "SP", cep: "", lat: 0, lon: 0, operation: "delete" }]),
+  });
+  const [result] = await resolveAddressWithBackend("any");
+  delete global.fetch;
+  assert.equal(result.operation, "delete");
+});
+
+test("resolveAddressWithBackend defaults operation to 'create' when missing", async () => {
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ([{ street: "x", number: "1", neighborhood: "", city: "", state: "SP", cep: "", lat: 0, lon: 0 }]),
+  });
+  const [result] = await resolveAddressWithBackend("any");
+  delete global.fetch;
+  assert.equal(result.operation, "create");
 });
 
 test("resolveAddressWithBackend defaults apt to empty string when missing", async () => {

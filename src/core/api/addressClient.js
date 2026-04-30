@@ -74,5 +74,10 @@ function normalizeResolvedAddress(payload) {
     cep: String(payload.cep || "").trim(),
     lat: Number(payload.lat),
     lon: Number(payload.lon),
+    operation: normalizeOperation(payload.operation),
   };
+}
+
+function normalizeOperation(value) {
+  return value === "delete" ? "delete" : "create";
 }

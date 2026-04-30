@@ -1,15 +1,30 @@
 import { resolveAddressWithBackend } from "../core/api/addressClient.js";
-import { createAddress, getXsrfFromCookieString } from "../core/api/hourglassApi.js";
+import {
+  createAddress,
+  deleteAddress,
+  getXsrfFromCookieString,
+  searchAddresses,
+} from "../core/api/hourglassApi.js";
 import { fetchTerritoryForLatLon } from "../core/domain/territoryFinder.js";
 import { buildHourglassAddressPayload } from "../core/domain/addressRequest.js";
+import { findAddressToDelete } from "../core/domain/findAddressToDelete.js";
 
 const defaultDeps = {
   resolveAddressWithBackend,
   createAddress,
+  deleteAddress,
+  searchAddresses,
   getXsrfFromCookieString,
   fetchTerritoryForLatLon,
   buildHourglassAddressPayload,
+  findAddressToDelete,
 };
+
+function sortByOperation(candidates) {
+  const creates = candidates.filter((c) => c.operation !== "delete");
+  const deletes = candidates.filter((c) => c.operation === "delete");
+  return [...creates, ...deletes];
+}
 
 let deps = { ...defaultDeps };
 
@@ -165,18 +180,20 @@ export function setupPopup() {
   }
 
   function formatCandidateLabel(candidate, index) {
+    const opTag = candidate.operation === "delete" ? "[delete]" : "[create]";
     const payload = candidate._payload;
-    const parts = payload
-      ? [`#${index + 1}`, payload.line1, payload.city, payload.state, payload.postalcode]
-      : [
-          `#${index + 1}`,
-          candidate.street,
-          candidate.number,
-          candidate.apt,
-          candidate.city,
-          candidate.state,
-          candidate.cep,
-        ];
+    const baseParts = payload
+      ? [payload.line1, payload.city, payload.state, payload.postalcode]
+      : [candidate.street, candidate.number, candidate.apt, candidate.city, candidate.state, candidate.cep];
+
+    const parts = [`#${index + 1}`, opTag, ...baseParts];
+
+    if (candidate.operation === "delete" && candidate._searchResult) {
+      const { status, matches } = candidate._searchResult;
+      if (status === "none") parts.push("(no match)");
+      else if (status === "many") parts.push(`(${matches.length} matches)`);
+      else parts.push(`(id ${matches[0].id})`);
+    }
 
     return parts.filter(Boolean).join(" - ");
   }
@@ -250,6 +267,11 @@ export function setupPopup() {
       throw new Error("Não foi possível selecionar o endereço normalizado.");
     }
 
+    if (candidate.operation === "delete") {
+      await renderDeleteCandidate(candidate, selectedIndex);
+      return;
+    }
+
     let payload = candidate._payload;
     let territory = candidate._territory;
 
@@ -274,6 +296,111 @@ export function setupPopup() {
     pendingSubmission.territory = territory;
     renderCandidateOptions(pendingSubmission.candidates, selectedIndex);
     showPreview(payload, territory, selectedIndex, pendingSubmission.candidates);
+  }
+
+  async function renderDeleteCandidate(candidate, selectedIndex) {
+    if (!candidate._searchResult) {
+      candidate._searchResult = await deps.findAddressToDelete(candidate, {
+        searchAddresses: deps.searchAddresses,
+        xsrfToken: pendingSubmission.xsrfToken,
+      });
+      candidate._selectedMatchIndex = 0;
+    }
+
+    const result = candidate._searchResult;
+
+    if (result.status === "none") {
+      setMessage(
+        `Sem correspondência para "${candidate.street} ${candidate.number}". Pulando candidato.`,
+        "info",
+      );
+      removeCandidateAt(selectedIndex);
+      return;
+    }
+
+    pendingSubmission.selectedIndex = selectedIndex;
+    pendingSubmission.payload = null;
+    pendingSubmission.territory = null;
+    renderCandidateOptions(pendingSubmission.candidates, selectedIndex);
+    showDeletePreview(candidate, result, selectedIndex);
+  }
+
+  function showDeletePreview(candidate, result, selectedIndex) {
+    const matchIndex = candidate._selectedMatchIndex || 0;
+    const selected = result.matches[matchIndex];
+    const total = pendingSubmission.candidates.length;
+
+    const baseRows = [
+      ["Candidatos", `${selectedIndex + 1} de ${total}`],
+      ["Operação", "Deletar"],
+      ["Buscar por", `${candidate.street}, ${candidate.number}`],
+      ["Query usada", result.query],
+      ["Resultados", String(result.matches.length)],
+    ];
+
+    if (result.matches.length > 1) {
+      baseRows.push(["Match selecionado", `${matchIndex + 1} de ${result.matches.length}`]);
+    }
+
+    baseRows.push(
+      ["ID", String(selected.id)],
+      ["Line 1", selected.line1 || ""],
+      ["Line 2", selected.line2 || ""],
+      ["Cidade", selected.city || ""],
+      ["Estado", selected.state || ""],
+      ["CEP", selected.postalcode || ""],
+    );
+
+    const rowEls = baseRows.map(([label, value]) => createPreviewRow(label, value));
+
+    if (result.matches.length > 1) {
+      rowEls.push(buildMatchPicker(candidate, result, selectedIndex));
+    }
+
+    previewSummary.replaceChildren(...rowEls);
+    previewJson.textContent = JSON.stringify(selected, null, 2);
+    previewPanel.classList.add("show");
+  }
+
+  function buildMatchPicker(candidate, result, selectedIndex) {
+    const picker = document.createElement("div");
+    picker.className = "delete-match-picker";
+
+    const heading = document.createElement("div");
+    heading.className = "preview-label";
+    heading.textContent = "Escolha o endereço a deletar:";
+    picker.appendChild(heading);
+
+    result.matches.forEach((match, idx) => {
+      const row = document.createElement("div");
+      row.className = "delete-match-row";
+      if (idx === (candidate._selectedMatchIndex || 0)) row.classList.add("selected");
+      row.style.cursor = "pointer";
+      row.textContent = `#${idx + 1} - ${match.line1 || "?"} (line2: ${match.line2 || "-"}) - id ${match.id}`;
+      row.addEventListener("click", () => {
+        candidate._selectedMatchIndex = idx;
+        showDeletePreview(candidate, result, selectedIndex);
+        renderCandidateOptions(pendingSubmission.candidates, selectedIndex);
+      });
+      picker.appendChild(row);
+    });
+
+    return picker;
+  }
+
+  function removeCandidateAt(index) {
+    pendingSubmission.candidates.splice(index, 1);
+    if (pendingSubmission.candidates.length === 0) {
+      resetPreview();
+      return;
+    }
+    const newIndex = Math.min(index, pendingSubmission.candidates.length - 1);
+    pendingSubmission.selectedIndex = newIndex;
+    renderCandidateOptions(pendingSubmission.candidates, newIndex);
+    renderSelectedCandidate(newIndex).catch((err) => {
+      console.error("[Popup Error]", err);
+      setMessage(err.message || "Não foi possível atualizar a pré-visualização.");
+    });
   }
 
   function handleDenyCandidate(index) {
@@ -307,6 +434,18 @@ export function setupPopup() {
       return;
     }
 
+    const candidate = pendingSubmission.candidates[index];
+    if (!candidate) return;
+
+    if (candidate.operation === "delete") {
+      await handleAcceptDelete(candidate, index);
+      return;
+    }
+
+    await handleAcceptCreate(index);
+  }
+
+  async function handleAcceptCreate(index) {
     const needsRebuild =
       index !== pendingSubmission.selectedIndex || !pendingSubmission.payload;
 
@@ -327,23 +466,48 @@ export function setupPopup() {
         xsrfToken: pendingSubmission.xsrfToken,
       });
       setMessage("Endereço criado no Hourglass.", "success");
-
-      pendingSubmission.candidates.splice(index, 1);
-
-      if (pendingSubmission.candidates.length === 0) {
-        resetPreview();
-      } else {
-        const newIndex = Math.min(index, pendingSubmission.candidates.length - 1);
-        pendingSubmission.selectedIndex = newIndex;
-        renderCandidateOptions(pendingSubmission.candidates, newIndex);
-        renderSelectedCandidate(newIndex).catch((err) => {
-          console.error("[Popup Error]", err);
-          setMessage(err.message || "Não foi possível atualizar a pré-visualização.");
-        });
-      }
+      removeCandidateAt(index);
     } catch (error) {
       console.error("[Popup Error]", error);
       setMessage(error.message || "Não foi possível enviar o endereço.");
+    } finally {
+      fillButton.disabled = false;
+    }
+  }
+
+  async function handleAcceptDelete(candidate, index) {
+    if (index !== pendingSubmission.selectedIndex || !candidate._searchResult) {
+      try {
+        await renderSelectedCandidate(index);
+      } catch (err) {
+        console.error("[Popup Error]", err);
+        setMessage(err.message || "Não foi possível buscar o endereço para deletar.");
+        return;
+      }
+    }
+
+    const result = candidate._searchResult;
+    if (!result || result.status === "none") {
+      setMessage("Nenhum endereço encontrado para deletar.");
+      return;
+    }
+
+    const matchIdx = candidate._selectedMatchIndex || 0;
+    const match = result.matches[matchIdx];
+    if (!match) {
+      setMessage("Selecione qual endereço deletar.");
+      return;
+    }
+
+    fillButton.disabled = true;
+
+    try {
+      await deps.deleteAddress(match.id, { xsrfToken: pendingSubmission.xsrfToken });
+      setMessage(`Endereço "${match.line1}" (id ${match.id}) deletado.`, "success");
+      removeCandidateAt(index);
+    } catch (error) {
+      console.error("[Popup Error]", error);
+      setMessage(error.message || "Não foi possível deletar o endereço.");
     } finally {
       fillButton.disabled = false;
     }
@@ -367,12 +531,14 @@ export function setupPopup() {
     setButtonLoading(true);
 
     try {
-      const candidates = await deps.resolveAddressWithBackend(rawAddress);
+      const resolved = await deps.resolveAddressWithBackend(rawAddress);
 
-      if (!Array.isArray(candidates) || candidates.length === 0) {
+      if (!Array.isArray(resolved) || resolved.length === 0) {
         setMessage("Não foi possível interpretar o endereço. Verifique o formato e a configuração do backend.");
         return;
       }
+
+      const candidates = sortByOperation(resolved);
 
       const tabId = await getActiveTabId();
       const cookieString = await getCookieStringFromTab(tabId);
