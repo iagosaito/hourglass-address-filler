@@ -7,6 +7,7 @@ import {
   getAddressesByTerritory,
   getTerritories,
   getXsrfFromCookieString,
+  searchAddresses,
 } from "../../../src/core/api/hourglassApi.js";
 
 test("getTerritories calls correct endpoint and returns JSON", async () => {
@@ -81,6 +82,39 @@ test("createAddress reads xsrf from document.cookie when not provided", async ()
 test("createAddress throws on non-ok response", async () => {
   global.fetch = async () => ({ ok: false, status: 400, text: async () => "Bad request" });
   await assert.rejects(async () => createAddress({ territoryId: 1 }), /400/);
+});
+
+test("searchAddresses calls correct endpoint with encoded query and returns array", async () => {
+  const mockResults = [{ id: 2310267, line1: "Rua Marconi 131" }];
+  let called = false;
+  global.fetch = async (url, opts) => {
+    called = true;
+    assert.strictEqual(url, "https://app.hourglass-app.com/api/v0.2/scheduling/territory/addresses/search?address=Rua%20Marconi");
+    assert.strictEqual(opts.method, "GET");
+    assert.strictEqual(opts.headers["X-Hourglass-XSRF-Token"], "token123");
+    assert.strictEqual(opts.credentials, "include");
+    return { ok: true, status: 200, json: async () => mockResults, text: async () => "" };
+  };
+  const res = await searchAddresses("Rua Marconi", { xsrfToken: "token123" });
+  assert.deepStrictEqual(res, mockResults);
+  assert.ok(called);
+});
+
+test("searchAddresses trims the query before encoding", async () => {
+  global.fetch = async (url) => {
+    assert.ok(url.endsWith("?address=marcon"), `unexpected url: ${url}`);
+    return { ok: true, status: 200, json: async () => [], text: async () => "" };
+  };
+  await searchAddresses("  marcon  ", { xsrfToken: "tok" });
+});
+
+test("searchAddresses throws on non-ok response", async () => {
+  global.fetch = async () => ({ ok: false, status: 401, text: async () => "Unauthorized" });
+  await assert.rejects(async () => searchAddresses("marcon", { xsrfToken: "tok" }), /401/);
+});
+
+test("searchAddresses throws when query is empty", async () => {
+  await assert.rejects(async () => searchAddresses("   "), /query must be a non-empty string/);
 });
 
 test("getAddressesByTerritory calls correct endpoint and returns address array", async () => {
