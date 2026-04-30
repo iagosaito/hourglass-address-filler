@@ -60,6 +60,7 @@ test("resolveAddressWithBackend posts the raw address to the backend and returns
     {
       street: "Av. Paulista",
       number: "1578",
+      apt: "",
       neighborhood: "Bela Vista",
       city: "São Paulo",
       state: "SP",
@@ -70,6 +71,7 @@ test("resolveAddressWithBackend posts the raw address to the backend and returns
     {
       street: "Avenida Paulista",
       number: "1578",
+      apt: "",
       neighborhood: "Bela Vista",
       city: "São Paulo",
       state: "SP",
@@ -105,4 +107,24 @@ test("resolveAddressWithBackend applies capitalizeWords to street", async () => 
   const [result] = await resolveAddressWithBackend("any");
   delete global.fetch;
   assert.equal(result.street, "Av. Paulista");
+});
+
+test("resolveAddressWithBackend surfaces apt when present in payload", async () => {
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ([{ street: "Av Angelica", number: "919", apt: "12", neighborhood: "", city: "", state: "SP", cep: "", lat: 0, lon: 0 }]),
+  });
+  const [result] = await resolveAddressWithBackend("any");
+  delete global.fetch;
+  assert.equal(result.apt, "12");
+});
+
+test("resolveAddressWithBackend defaults apt to empty string when missing", async () => {
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => ([{ street: "Av X", number: "1", neighborhood: "", city: "", state: "SP", cep: "", lat: 0, lon: 0 }]),
+  });
+  const [result] = await resolveAddressWithBackend("any");
+  delete global.fetch;
+  assert.equal(result.apt, "");
 });

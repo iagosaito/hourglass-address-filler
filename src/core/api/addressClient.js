@@ -67,6 +67,7 @@ function normalizeResolvedAddress(payload) {
   return {
     street: capitalizeWords(payload.street),
     number: String(payload.number || "").trim(),
+    apt: String(payload.apt || "").trim(),
     neighborhood: String(payload.neighborhood || "").trim(),
     city: String(payload.city || "").trim(),
     state: normalizeStateToUF(payload.state),

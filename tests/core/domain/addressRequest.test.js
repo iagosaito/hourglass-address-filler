@@ -3,6 +3,42 @@ import test from "node:test";
 
 import { buildHourglassAddressPayload } from "../../../src/core/domain/addressRequest.js";
 
+test("buildHourglassAddressPayload appends apt to line1 when provided", () => {
+  const payload = buildHourglassAddressPayload(
+    {
+      street: "Av Angelica",
+      number: "919",
+      apt: "12",
+      neighborhood: "Santa Cecília",
+      city: "São Paulo",
+      state: "SP",
+      cep: "01227-000",
+    },
+    { lat: -23.54, lon: -46.65 },
+    { id: 1 }
+  );
+
+  assert.equal(payload.line1, "Av Angelica, 919 - 12");
+});
+
+test("buildHourglassAddressPayload omits apt separator when apt is empty", () => {
+  const payload = buildHourglassAddressPayload(
+    {
+      street: "Av Angelica",
+      number: "919",
+      apt: "",
+      neighborhood: "",
+      city: "",
+      state: "SP",
+      cep: "",
+    },
+    { lat: -23.54, lon: -46.65 },
+    { id: 1 }
+  );
+
+  assert.equal(payload.line1, "Av Angelica, 919");
+});
+
 test("buildHourglassAddressPayload creates the Hourglass payload shape", () => {
   const payload = buildHourglassAddressPayload(
     {

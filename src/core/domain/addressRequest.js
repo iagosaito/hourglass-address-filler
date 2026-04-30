@@ -1,6 +1,7 @@
-function formatLine1(street, number) {
+function formatLine1(street, number, apt) {
   const streetPart = String(street || "").trim();
   const numberPart = String(number || "").trim();
+  const aptPart = String(apt || "").trim();
 
   if (!streetPart || !numberPart) {
     throw new TypeError(
@@ -8,7 +9,8 @@ function formatLine1(street, number) {
     );
   }
 
-  return `${streetPart}, ${numberPart}`;
+  const base = `${streetPart}, ${numberPart}`;
+  return aptPart ? `${base} - ${aptPart}` : base;
 }
 
 function assertFiniteCoordinate(value, label) {
@@ -38,7 +40,7 @@ export function buildHourglassAddressPayload(parsedFields, locationDetails, terr
     );
   }
 
-  const line1 = formatLine1(parsedFields.street, parsedFields.number);
+  const line1 = formatLine1(parsedFields.street, parsedFields.number, parsedFields.apt);
   assertFiniteCoordinate(locationDetails.lon, "locationDetails.lon");
   assertFiniteCoordinate(locationDetails.lat, "locationDetails.lat");
 
