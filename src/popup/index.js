@@ -179,23 +179,59 @@ export function setupPopup() {
     previewPanel.classList.add("show");
   }
 
-  function formatCandidateLabel(candidate, index) {
-    const opTag = candidate.operation === "delete" ? "[delete]" : "[create]";
+  function getCandidateAddressParts(candidate) {
     const payload = candidate._payload;
-    const baseParts = payload
+    const parts = payload
       ? [payload.line1, payload.city, payload.state, payload.postalcode]
       : [candidate.street, candidate.number, candidate.apt, candidate.city, candidate.state, candidate.cep];
 
-    const parts = [`#${index + 1}`, opTag, ...baseParts];
+    return parts.filter(Boolean);
+  }
 
-    if (candidate.operation === "delete" && candidate._searchResult) {
-      const { status, matches } = candidate._searchResult;
-      if (status === "none") parts.push("(no match)");
-      else if (status === "many") parts.push(`(${matches.length} matches)`);
-      else parts.push(`(id ${matches[0].id})`);
+  function getMatchAnnotation(candidate) {
+    if (candidate.operation !== "delete" || !candidate._searchResult) return null;
+    const { status, matches } = candidate._searchResult;
+    if (status === "none") return { text: "no match", emphasized: false };
+    if (status === "many") return { text: `${matches.length} matches — pick one`, emphasized: true };
+    return { text: `id ${matches[0].id}`, emphasized: false };
+  }
+
+  function formatCandidateLabel(candidate, index) {
+    const op = candidate.operation === "delete" ? "delete" : "create";
+    const annotation = getMatchAnnotation(candidate);
+    const parts = [`#${index + 1}`, op, ...getCandidateAddressParts(candidate)];
+    if (annotation) parts.push(annotation.text);
+    return parts.join(" - ");
+  }
+
+  function buildOpTag(candidate) {
+    const op = candidate.operation === "delete" ? "delete" : "create";
+    const tag = document.createElement("span");
+    tag.className = `op-tag op-tag-${op}`;
+    tag.textContent = op.toUpperCase();
+    return tag;
+  }
+
+  function populateCandidateLabel(labelEl, candidate, index) {
+    labelEl.replaceChildren();
+
+    const indexEl = document.createElement("span");
+    indexEl.className = "candidate-index";
+    indexEl.textContent = `#${index + 1}`;
+    labelEl.appendChild(indexEl);
+
+    const addressEl = document.createElement("span");
+    addressEl.className = "candidate-address";
+    addressEl.textContent = getCandidateAddressParts(candidate).join(" - ");
+    labelEl.appendChild(addressEl);
+
+    const annotation = getMatchAnnotation(candidate);
+    if (annotation) {
+      const annEl = document.createElement("span");
+      annEl.className = annotation.emphasized ? "match-warning" : "match-info";
+      annEl.textContent = annotation.text;
+      labelEl.appendChild(annEl);
     }
-
-    return parts.filter(Boolean).join(" - ");
   }
 
   function renderCandidateOptions(candidates, selectedIndex) {
@@ -206,10 +242,18 @@ export function setupPopup() {
         item.setAttribute("role", "listitem");
         item.dataset.index = String(index);
 
+        const header = document.createElement("div");
+        header.className = "candidate-header";
+        header.appendChild(buildOpTag(candidate));
+        item.appendChild(header);
+
+        const body = document.createElement("div");
+        body.className = "candidate-body";
+
         const label = document.createElement("div");
         label.className = "candidate-label";
         label.setAttribute("aria-label", formatCandidateLabel(candidate, index));
-        label.textContent = formatCandidateLabel(candidate, index);
+        populateCandidateLabel(label, candidate, index);
         label.style.cursor = "pointer";
         label.addEventListener("click", async () => {
           try {
@@ -244,7 +288,8 @@ export function setupPopup() {
         });
 
         actions.append(denyBtn, acceptBtn);
-        item.append(label, actions);
+        body.append(label, actions);
+        item.appendChild(body);
 
         if (index === selectedIndex) {
           item.classList.add("selected");
