@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   createAddress,
   deleteAddress,
+  getAddressesByTerritory,
   getTerritories,
   getXsrfFromCookieString,
 } from "../../../src/core/api/hourglassApi.js";
@@ -80,6 +81,31 @@ test("createAddress reads xsrf from document.cookie when not provided", async ()
 test("createAddress throws on non-ok response", async () => {
   global.fetch = async () => ({ ok: false, status: 400, text: async () => "Bad request" });
   await assert.rejects(async () => createAddress({ territoryId: 1 }), /400/);
+});
+
+test("getAddressesByTerritory calls correct endpoint and returns address array", async () => {
+  const mockAddresses = [{ id: 4323516, territoryId: 454221, line1: "R. Aureliano Coutinho, 258, apto 21" }];
+  let called = false;
+  global.fetch = async (url, opts) => {
+    called = true;
+    assert.strictEqual(url, "https://app.hourglass-app.com/api/v0.2/scheduling/territory/addresses/454221");
+    assert.strictEqual(opts.method, "GET");
+    assert.strictEqual(opts.headers["X-Hourglass-XSRF-Token"], "token123");
+    assert.strictEqual(opts.credentials, "include");
+    return { ok: true, status: 200, json: async () => mockAddresses, text: async () => "" };
+  };
+  const res = await getAddressesByTerritory(454221, { xsrfToken: "token123" });
+  assert.deepStrictEqual(res, mockAddresses);
+  assert.ok(called);
+});
+
+test("getAddressesByTerritory throws on non-ok response", async () => {
+  global.fetch = async () => ({ ok: false, status: 403, text: async () => "Forbidden" });
+  await assert.rejects(async () => getAddressesByTerritory(454221, { xsrfToken: "tok" }), /403/);
+});
+
+test("getAddressesByTerritory throws when territoryId is falsy", async () => {
+  await assert.rejects(async () => getAddressesByTerritory(null), /territoryId must be a non-empty value/);
 });
 
 test("deleteAddress sends DELETE to correct endpoint with xsrf header", async () => {

@@ -53,6 +53,27 @@ export async function createAddress(newAddressReq, opts = {}) {
   return res.json();
 }
 
+export async function getAddressesByTerritory(territoryId, opts = {}) {
+  if (!territoryId) {
+    throw new TypeError(`territoryId must be a non-empty value, got: ${territoryId}`);
+  }
+
+  const { baseUrl = DEFAULT_ADDRESSES_URL, xsrfToken, includeCredentials = true } = opts;
+  const token = xsrfToken ?? getXsrfFromDocumentCookie();
+  const res = await fetch(`${baseUrl}/${territoryId}`, {
+    method: "GET",
+    headers: buildHeaders(token),
+    credentials: includeCredentials ? "include" : "omit",
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`getAddressesByTerritory failed: ${res.status} ${text}`);
+  }
+
+  return res.json();
+}
+
 export async function deleteAddress(addressId, opts = {}) {
   if (!addressId) {
     throw new TypeError(`addressId must be a non-empty value, got: ${addressId}`);
