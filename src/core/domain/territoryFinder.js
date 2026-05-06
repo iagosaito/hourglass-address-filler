@@ -1,6 +1,22 @@
 import { getTerritories } from "../api/hourglassApi.js";
 import { isPointInMultiPolygon, isPointInPolygon } from "./geofence.js";
 
+// Territories that must never receive new addresses. Either they are
+// "parent" regions that have been split into smaller territories (so a
+// hit here would shadow the real child territory) or they are bookkeeping
+// buckets ("INCLUYER DIRECCIONES", "BORRAR DIRECCIONES").
+const NON_ASSIGNABLE_TERRITORY_IDS = new Set([
+  454498, // Región 2 — Sta Cecília e Campos Elíseos
+  457897, // 000 - INCLUYER DIRECCIONES
+  498363, // Región 3 — Sta Ifigênia y Luz
+  643924, // Región 4 — República
+  693042, // 000 - BORRAR DIRECCIONES
+]);
+
+function isAssignableTerritory(territory) {
+  return !NON_ASSIGNABLE_TERRITORY_IDS.has(territory.id);
+}
+
 function getGeometryFromBoundaries(boundaries) {
   if (!boundaries || !boundaries.type) {
     return null;
@@ -41,6 +57,10 @@ export function findTerritoryByLatLon(lat, lon, territories) {
   const point = [lon, lat];
 
   for (const territory of territories) {
+    if (!isAssignableTerritory(territory)) {
+      continue;
+    }
+
     let boundaries = territory.boundaries;
     if (!boundaries) {
       continue;
